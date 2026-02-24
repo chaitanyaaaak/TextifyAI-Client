@@ -37,16 +37,16 @@ The app will be available at `http://localhost:5173` by default.
 
 ## Tech Stack
 
-| Category       | Technology                                                    |
-| -------------- | ------------------------------------------------------------- |
-| Framework      | **React 19** (JSX, no TypeScript)                             |
-| Build Tool     | **Vite 7** with `@vitejs/plugin-react`                        |
-| Styling        | **Tailwind CSS v4** (via `@tailwindcss/vite` plugin)          |
-| Animations     | **Framer Motion** for page transitions and micro-interactions |
-| Routing        | **React Router DOM v7** (client-side routing)                 |
-| Font           | **Poppins** (loaded via Google Fonts CDN in `index.html`)     |
-| Icons          | **Font Awesome 6** (loaded via CDN) + inline SVGs             |
-| Linting        | **ESLint 9** with React Hooks and React Refresh plugins       |
+| Category   | Technology                                                    |
+| ---------- | ------------------------------------------------------------- |
+| Framework  | **React 19** (JSX, no TypeScript)                             |
+| Build Tool | **Vite 7** with `@vitejs/plugin-react`                        |
+| Styling    | **Tailwind CSS v4** (via `@tailwindcss/vite` plugin)          |
+| Animations | **Framer Motion** for page transitions and micro-interactions |
+| Routing    | **React Router DOM v7** (client-side routing)                 |
+| Font       | **Poppins** (loaded via Google Fonts CDN in `index.html`)     |
+| Icons      | **Font Awesome 6** (loaded via CDN) + inline SVGs             |
+| Linting    | **ESLint 9** with React Hooks and React Refresh plugins       |
 
 ---
 
@@ -88,11 +88,11 @@ TextifyAI/
 
 ## Routing (3 pages)
 
-| Route               | Component       | Purpose                                          |
-| -------------------- | --------------- | ------------------------------------------------ |
-| `/`                  | `App.jsx`       | Landing page with hero, features, and live demo   |
-| `/roles`             | `RoleSelection` | Choose a professional role (Lawyer, Doctor, etc.) |
-| `/workspace/:role`   | `Workspace`     | Chat-based writing workspace for the chosen role  |
+| Route              | Component       | Purpose                                           |
+| ------------------ | --------------- | ------------------------------------------------- |
+| `/`                | `App.jsx`       | Landing page with hero, features, and live demo   |
+| `/roles`           | `RoleSelection` | Choose a professional role (Lawyer, Doctor, etc.) |
+| `/workspace/:role` | `Workspace`     | Chat-based writing workspace for the chosen role  |
 
 ---
 
@@ -106,8 +106,8 @@ The project uses **Tailwind CSS v4** with the Vite plugin (no `tailwind.config.j
 @import "tailwindcss";
 
 @theme {
-  --color-bg-deep: #0a0a0f;    /* Main dark background */
-  --color-bg-card: #12121a;    /* Card/surface background */
+  --color-bg-deep: #0a0a0f; /* Main dark background */
+  --color-bg-card: #12121a; /* Card/surface background */
 }
 ```
 
@@ -148,9 +148,9 @@ pip install -r requirements.txt
 
 ## Troubleshooting
 
-| Issue                          | Solution                                                         |
-| ------------------------------ | ---------------------------------------------------------------- |
-| `npm install` fails            | Make sure you're using Node.js v18+. Run `node --version`        |
-| Port 5173 already in use       | Vite will auto-pick the next available port, or stop the other process |
-| Tailwind classes not working   | Ensure `@tailwindcss/vite` is in devDependencies and `vite.config.js` has the plugin |
-| Fonts not loading              | Check internet connection — Poppins and Font Awesome are loaded via CDN |
+| Issue                        | Solution                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| `npm install` fails          | Make sure you're using Node.js v18+. Run `node --version`                            |
+| Port 5173 already in use     | Vite will auto-pick the next available port, or stop the other process               |
+| Tailwind classes not working | Ensure `@tailwindcss/vite` is in devDependencies and `vite.config.js` has the plugin |
+| Fonts not loading            | Check internet connection — Poppins and Font Awesome are loaded via CDN              |
