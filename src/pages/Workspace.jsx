@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import roleConfig from "../data/roleConfig";
-import { getCorrections, getPredictions, correctFileText } from "../data/mockData";
+import { api, API_BASE } from "../api/client";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -82,6 +82,9 @@ function TypingIndicator({ config }) {
 /* ------------------------------------------------------------------ */
 function ChatBubble({ message, config }) {
   const isUser = message.sender === "user";
+
+  // Don't render empty messages (e.g. streaming placeholder before first token)
+  if (!message.text) return null;
 
   return (
     <motion.div
@@ -182,31 +185,35 @@ function PredictionChips({ predictions, config, onSelect }) {
 
 /* ------------------------------------------------------------------ */
 /*  SpellCheckOverlay — renders text with red wavy underlines          */
+/*  Uses correctionsMap from API instead of local dictionary           */
 /* ------------------------------------------------------------------ */
-function SpellCheckOverlay({ text, onWordClick }) {
+function SpellCheckOverlay({ text, correctionsMap, onReplace }) {
   if (!text) return <span className="text-slate-500 pointer-events-none select-none">&nbsp;</span>;
 
   const tokens = text.split(/(\s+)/);
+  let charOffset = 0;
 
   return tokens.map((token, i) => {
+    const tokenStart = charOffset;
+    charOffset += token.length;
+
     if (/^\s+$/.test(token)) {
-      // preserve whitespace including newlines
       return <span key={i}>{token}</span>;
     }
 
     const stripped = token.replace(/[^a-zA-Z'-]/g, "");
-    const corrections = stripped ? getCorrections(stripped) : null;
+    const entry = stripped ? correctionsMap[stripped.toLowerCase()] || null : null;
 
-    if (corrections) {
+    if (entry) {
       return (
         <span
           key={i}
           onClick={(e) => {
             e.stopPropagation();
-            const rect = e.currentTarget.getBoundingClientRect();
-            onWordClick(stripped, corrections, rect);
+            onReplace(tokenStart, token.length, entry.correction);
           }}
           className="cursor-pointer text-red-400 underline decoration-wavy decoration-red-500 underline-offset-4"
+          title={`Tap to fix: ${entry.correction}`}
           style={{ pointerEvents: "auto" }}
         >
           {token}
@@ -223,10 +230,10 @@ function SpellCheckOverlay({ text, onWordClick }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  FileAnalysisModal                                                  */
+/*  FileAnalysisModal — uses backend upload / poll / report / download */
 /* ------------------------------------------------------------------ */
 const analysisSteps = [
-  { label: "Reading file contents", icon: "fa-file-alt" },
+  { label: "Uploading file", icon: "fa-file-upload" },
   { label: "Analyzing text for errors", icon: "fa-search" },
   { label: "Correcting misspelled words", icon: "fa-spell-check" },
   { label: "Generating corrected file", icon: "fa-file-download" },
@@ -235,52 +242,95 @@ const analysisSteps = [
 function FileAnalysisModal({ file, config, onClose }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [result, setResult] = useState(null);
-  const [originalText, setOriginalText] = useState("");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!file) return;
     let cancelled = false;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (cancelled) return;
-      const text = e.target.result;
-      setOriginalText(text);
-
-      // Step-by-step progress with delays
-      let step = 0;
-      const advance = () => {
+    async function processFile() {
+      try {
+        // Step 1: Upload file
+        const formData = new FormData();
+        formData.append("file", file);
+        const uploadRes = await fetch(`${API_BASE}/files/upload`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!uploadRes.ok) throw new Error("Upload failed");
+        const uploadData = await uploadRes.json();
+        const jobId = uploadData.jobId;
         if (cancelled) return;
-        step++;
-        setCurrentStep(step);
-        if (step < analysisSteps.length) {
-          setTimeout(advance, 800 + Math.random() * 600);
-        } else {
-          // Final: run the correction
-          setTimeout(() => {
-            if (cancelled) return;
-            const res = correctFileText(text);
-            setResult(res);
-          }, 500);
-        }
-      };
-      setTimeout(advance, 700);
-    };
-    reader.readAsText(file);
+        setCurrentStep(1);
 
-    return () => { cancelled = true; };
+        // Step 2-3: Poll status until completed
+        let completed = false;
+        while (!completed && !cancelled) {
+          await new Promise((r) => setTimeout(r, 1500));
+          const statusRes = await fetch(`${API_BASE}/files/status/${jobId}`);
+          if (!statusRes.ok) throw new Error("Status check failed");
+          const statusData = await statusRes.json();
+
+          // Map API step (1-indexed) to our array (0-indexed)
+          if (statusData.step != null) {
+            setCurrentStep(Math.min(statusData.step - 1, analysisSteps.length - 1));
+          } else {
+            // Map status string to step
+            const statusMap = { queued: 0, analyzing: 1, correcting: 2, completed: 3 };
+            if (statusMap[statusData.status] != null) {
+              setCurrentStep(statusMap[statusData.status]);
+            }
+          }
+
+          if (statusData.status === "completed") {
+            completed = true;
+          } else if (statusData.status === "failed") {
+            throw new Error("File processing failed on server");
+          }
+        }
+        if (cancelled) return;
+
+        // Step 4: Get report
+        const reportRes = await fetch(`${API_BASE}/files/report/${jobId}`);
+        if (!reportRes.ok) throw new Error("Failed to fetch report");
+        const report = await reportRes.json();
+        if (cancelled) return;
+
+        setResult({
+          jobId,
+          totalWords: report.totalWords || 0,
+          totalErrors: report.totalErrors || 0,
+          corrections: report.corrections || [],
+        });
+      } catch (err) {
+        if (!cancelled) {
+          console.error("File processing error:", err);
+          setError(err.message);
+        }
+      }
+    }
+
+    processFile();
+    return () => {
+      cancelled = true;
+    };
   }, [file]);
 
-  function handleDownload() {
-    if (!result) return;
-    const blob = new Blob([result.corrected], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    const baseName = file.name.replace(/\.[^.]+$/, "");
-    a.download = `${baseName}_corrected.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  async function handleDownload() {
+    if (!result?.jobId) return;
+    try {
+      const res = await fetch(`${API_BASE}/files/download/${result.jobId}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const baseName = file.name.replace(/\.[^.]+$/, "");
+      a.download = `${baseName}_corrected.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download error:", err);
+    }
   }
 
   const done = !!result;
@@ -317,10 +367,18 @@ function FileAnalysisModal({ file, config, onClose }) {
           </button>
         </div>
 
+        {/* Error state */}
+        {error && (
+          <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-center">
+            <i className="fas fa-exclamation-circle text-red-400 text-xl mb-2" />
+            <p className="text-sm text-red-300">{error}</p>
+          </div>
+        )}
+
         {/* Steps */}
         <div className="mb-6 space-y-3">
           {analysisSteps.map((step, i) => {
-            const isActive = !done && currentStep === i;
+            const isActive = !done && !error && currentStep === i;
             const isComplete = done || currentStep > i;
 
             return (
@@ -337,7 +395,6 @@ function FileAnalysisModal({ file, config, onClose }) {
                       : "bg-white/[0.02] border border-white/5"
                 }`}
               >
-                {/* Step number / status icon */}
                 <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                   isActive
                     ? `bg-gradient-to-br ${config.gradient} text-white`
@@ -348,13 +405,12 @@ function FileAnalysisModal({ file, config, onClose }) {
                   {isComplete ? (
                     <i className="fas fa-check text-[10px]" />
                   ) : isActive ? (
-                    <i className={`fas fa-circle-notch fa-spin text-[10px]`} />
+                    <i className="fas fa-circle-notch fa-spin text-[10px]" />
                   ) : (
                     <span>{i + 1}</span>
                   )}
                 </div>
 
-                {/* Label */}
                 <div className="flex items-center gap-2">
                   <i className={`fas ${step.icon} text-xs ${
                     isActive ? config.textAccent : isComplete ? "text-emerald-400" : "text-slate-600"
@@ -386,7 +442,7 @@ function FileAnalysisModal({ file, config, onClose }) {
                   <p className="text-[10px] text-slate-500 uppercase tracking-wider">Words</p>
                 </div>
                 <div className="rounded-xl bg-red-500/10 p-3 text-center">
-                  <p className="text-lg font-bold text-red-400">{result.corrections.length}</p>
+                  <p className="text-lg font-bold text-red-400">{result.totalErrors || result.corrections.length}</p>
                   <p className="text-[10px] text-slate-500 uppercase tracking-wider">Errors</p>
                 </div>
                 <div className="rounded-xl bg-emerald-500/10 p-3 text-center">
@@ -400,9 +456,9 @@ function FileAnalysisModal({ file, config, onClose }) {
                 <div className="mb-4 max-h-32 overflow-y-auto rounded-xl bg-white/[0.02] border border-white/5 p-3 space-y-1.5">
                   {result.corrections.map((c, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs">
-                      <span className="text-red-400 line-through">{c.original}</span>
+                      <span className="text-red-400 line-through">{c.original || c.word}</span>
                       <i className="fas fa-arrow-right text-[8px] text-slate-600" />
-                      <span className="text-emerald-400 font-medium">{c.corrected}</span>
+                      <span className="text-emerald-400 font-medium">{c.corrected || (c.suggestions && c.suggestions[0]) || "—"}</span>
                     </div>
                   ))}
                 </div>
@@ -433,17 +489,63 @@ function FileAnalysisModal({ file, config, onClose }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  ChatInput                                                          */
+/*  ChatInput — debounced spellcheck + predictions via API             */
 /* ------------------------------------------------------------------ */
 function ChatInput({ config, onSend, role }) {
   const [text, setText] = useState("");
-  const [popover, setPopover] = useState(null);
   const [uploadedFile, setUploadedFile] = useState(null);
+  const [correctionsMap, setCorrectionsMap] = useState({});
+  const [predictions, setPredictions] = useState([]);
   const textareaRef = useRef(null);
   const overlayRef = useRef(null);
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
-  const predictions = getPredictions(text, role);
+
+  // Debounced spell check via API
+  useEffect(() => {
+    if (!text.trim()) {
+      setCorrectionsMap({});
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const data = await api("/spellcheck", { text }, { signal: controller.signal });
+        const map = {};
+        for (const c of data.corrections) {
+          map[c.word.toLowerCase()] = { correction: c.correction, offset: c.offset, length: c.length };
+        }
+        setCorrectionsMap(map);
+      } catch (e) {
+        if (e.name !== "AbortError") console.error("Spellcheck error:", e);
+      }
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [text]);
+
+  // Debounced predictions via API
+  useEffect(() => {
+    if (text.trim().length < 3) {
+      setPredictions([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const data = await api("/predict", { text, role, count: 5 }, { signal: controller.signal });
+        setPredictions(data.predictions || []);
+      } catch (e) {
+        if (e.name !== "AbortError") console.error("Predict error:", e);
+      }
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [text, role]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -473,23 +575,13 @@ function ChatInput({ config, onSend, role }) {
     if (!trimmed) return;
     onSend(trimmed);
     setText("");
-    setPopover(null);
+    setCorrectionsMap({});
+    setPredictions([]);
   }
 
-  function handleWordClick(word, corrections, rect) {
-    const containerRect = containerRef.current.getBoundingClientRect();
-    setPopover({
-      word,
-      corrections,
-      left: rect.left - containerRect.left,
-    });
-  }
-
-  function handleCorrection(correction) {
-    // Replace the misspelled word with the correction
-    const regex = new RegExp(`\\b${popover.word}\\b`, "gi");
-    setText((prev) => prev.replace(regex, correction));
-    setPopover(null);
+  // On tap: replace misspelled word at [offset:offset+length] with correction
+  function handleReplace(offset, length, correction) {
+    setText((prev) => prev.slice(0, offset) + correction + prev.slice(offset + length));
     textareaRef.current?.focus();
   }
 
@@ -525,34 +617,21 @@ function ChatInput({ config, onSend, role }) {
         />
 
         <div ref={containerRef} className="relative min-h-[44px] flex-1 rounded-xl border border-white/10 bg-bg-card transition-colors focus-within:border-white/20">
-          {/* Popover */}
-          <AnimatePresence>
-            {popover && (
-              <CorrectionPopover
-                word={popover.word}
-                corrections={popover.corrections}
-                position={popover.left}
-                onSelect={handleCorrection}
-                onClose={() => setPopover(null)}
-              />
-            )}
-          </AnimatePresence>
-
-          {/* Styled overlay (visible text with spell highlights) */}
+          {/* Styled overlay (visible text with spell highlights — tap to auto-fix) */}
           <div
             ref={overlayRef}
             aria-hidden
             className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-4 py-3 text-sm leading-relaxed"
             style={{ fontFamily: "Poppins, sans-serif" }}
           >
-            <SpellCheckOverlay text={text} onWordClick={handleWordClick} />
+            <SpellCheckOverlay text={text} correctionsMap={correctionsMap} onReplace={handleReplace} />
           </div>
 
           {/* Actual textarea (transparent bg so overlay shows through) */}
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={(e) => { setText(e.target.value); setPopover(null); }}
+            onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             placeholder={config.placeholder}
@@ -626,7 +705,7 @@ function ChatArea({ messages, config, isAiTyping }) {
           <h2 className="text-xl font-bold text-white">{config.title} Workspace</h2>
           <p className="max-w-sm text-sm text-slate-400">{config.greeting}</p>
           <p className="text-xs text-slate-600">
-            Try typing a misspelled word or start with "i want to" to see predictions
+            Start typing to see real-time spell checking and AI-powered predictions
           </p>
         </motion.div>
       )}
@@ -645,7 +724,7 @@ function ChatArea({ messages, config, isAiTyping }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Workspace (main export)                                            */
+/*  Workspace (main export) — streaming chat via SSE                   */
 /* ------------------------------------------------------------------ */
 export default function Workspace() {
   const { role } = useParams();
@@ -659,19 +738,89 @@ export default function Workspace() {
   // Guard: invalid role → redirect
   if (!config) return <Navigate to="/roles" replace />;
 
-  function handleSend(text) {
+  async function handleSend(text) {
     const userMsg = { id: nextId.current++, sender: "user", text };
     setMessages((prev) => [...prev, userMsg]);
     setIsAiTyping(true);
 
-    const delay = 1500 + Math.random() * 1500;
-    setTimeout(() => {
-      const responses = config.mockResponses;
-      const aiText = responses[Math.floor(Math.random() * responses.length)];
-      const aiMsg = { id: nextId.current++, sender: "ai", text: aiText };
-      setMessages((prev) => [...prev, aiMsg]);
+    // Build conversation history for the chat API
+    const chatMessages = [...messages, userMsg].map((m) => ({
+      sender: m.sender === "ai" ? "assistant" : m.sender,
+      text: m.text,
+    }));
+
+    const aiMsgId = nextId.current++;
+    // Add an empty AI message placeholder (ChatBubble hides it until text arrives)
+    setMessages((prev) => [...prev, { id: aiMsgId, sender: "ai", text: "" }]);
+
+    try {
+      // Try streaming endpoint first
+      const res = await fetch(`${API_BASE}/chat/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, messages: chatMessages }),
+      });
+
+      if (!res.ok) throw new Error("Stream request failed");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let receivedFirst = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop(); // keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.done) {
+                setIsAiTyping(false);
+              } else if (data.token) {
+                if (!receivedFirst) {
+                  setIsAiTyping(false);
+                  receivedFirst = true;
+                }
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === aiMsgId ? { ...m, text: m.text + data.token } : m
+                  )
+                );
+              }
+            } catch {
+              // Skip malformed SSE lines
+            }
+          }
+        }
+      }
       setIsAiTyping(false);
-    }, delay);
+    } catch {
+      // Fallback: try non-streaming chat endpoint
+      try {
+        const data = await api("/chat", { role, messages: chatMessages });
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiMsgId ? { ...m, text: data.reply } : m
+          )
+        );
+      } catch {
+        // Both endpoints failed — show error message
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiMsgId
+              ? { ...m, text: "Sorry, I couldn't process your request. Please check that the backend server is running at http://localhost:8001." }
+              : m
+          )
+        );
+      }
+      setIsAiTyping(false);
+    }
   }
 
   return (
