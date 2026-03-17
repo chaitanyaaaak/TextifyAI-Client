@@ -83,8 +83,12 @@ function TypingIndicator({ config }) {
 function ChatBubble({ message, config }) {
   const isUser = message.sender === "user";
 
-  // Don't render empty messages (e.g. streaming placeholder before first token)
-  if (!message.text) return null;
+  // Don't render empty placeholder before any streaming content arrives
+  const hasContent =
+    message.text ||
+    message.description ||
+    (message.points && message.points.length > 0);
+  if (!hasContent) return null;
 
   return (
     <motion.div
@@ -107,7 +111,22 @@ function ChatBubble({ message, config }) {
             : "bg-bg-card text-slate-200 border border-white/5 rounded-bl-sm"
         }`}
       >
-        {message.text}
+        {isUser ? (
+          message.text
+        ) : (
+          <>
+            {message.description && <p>{message.description}</p>}
+            {message.points && message.points.length > 0 && (
+              <ol className="mt-2 list-decimal space-y-1 pl-4">
+                {message.points.map((p) => (
+                  <li key={p.index}>{p.text}</li>
+                ))}
+              </ol>
+            )}
+            {/* Fallback for non-streamed replies (e.g. /chat endpoint) */}
+            {!message.description && !message.points?.length && message.text}
+          </>
+        )}
       </div>
     </motion.div>
   );
@@ -154,32 +173,32 @@ function CorrectionPopover({ word, corrections, position, onSelect, onClose }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  PredictionChips                                                    */
+/*  PredictionList                                                     */
 /* ------------------------------------------------------------------ */
-function PredictionChips({ predictions, config, onSelect }) {
+function PredictionList({ predictions, config, onSelect }) {
   if (!predictions.length) return null;
 
   return (
-    <motion.div
+    <motion.ul
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ duration: 0.2 }}
-      className="scrollbar-hide flex gap-2 overflow-x-auto px-4 pb-2"
+      className="mx-3 mb-2 overflow-hidden rounded-xl border border-white/10 bg-bg-card"
     >
       {predictions.map((p, i) => (
-        <motion.button
-          key={p}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <motion.li
+          key={i}
+          initial={{ opacity: 0, x: -6 }}
+          animate={{ opacity: 1, x: 0 }}
           transition={{ delay: i * 0.04 }}
           onClick={() => onSelect(p)}
-          className={`shrink-0 rounded-full border ${config.borderAccent} ${config.bgAccent} px-3 py-1.5 text-xs font-medium ${config.textAccent} transition-all hover:brightness-125 whitespace-nowrap`}
+          className={`cursor-pointer border-b border-white/5 px-4 py-2.5 text-sm ${config.textAccent} transition-colors last:border-b-0 hover:bg-white/5`}
         >
           {p}
-        </motion.button>
+        </motion.li>
       ))}
-    </motion.div>
+    </motion.ul>
   );
 }
 
@@ -257,9 +276,15 @@ function FileAnalysisModal({ file, config, onClose }) {
           method: "POST",
           body: formData,
         });
-        if (!uploadRes.ok) throw new Error("Upload failed");
+        if (!uploadRes.ok) {
+          let msg = "Upload failed";
+          try { const e = await uploadRes.json(); msg = e.detail || e.message || msg; } catch {}
+          throw new Error(msg);
+        }
         const uploadData = await uploadRes.json();
-        const jobId = uploadData.jobId;
+        // Handle both camelCase (jobId) and snake_case (job_id) from backend
+        const jobId = uploadData.jobId ?? uploadData.job_id;
+        if (!jobId) throw new Error("Server did not return a job ID");
         if (cancelled) return;
         setCurrentStep(1);
 
@@ -268,7 +293,11 @@ function FileAnalysisModal({ file, config, onClose }) {
         while (!completed && !cancelled) {
           await new Promise((r) => setTimeout(r, 1500));
           const statusRes = await fetch(`${API_BASE}/files/status/${jobId}`);
-          if (!statusRes.ok) throw new Error("Status check failed");
+          if (!statusRes.ok) {
+            let msg = "Status check failed";
+            try { const e = await statusRes.json(); msg = e.detail || e.message || msg; } catch {}
+            throw new Error(msg);
+          }
           const statusData = await statusRes.json();
 
           // Map API step (1-indexed) to our array (0-indexed)
@@ -285,14 +314,21 @@ function FileAnalysisModal({ file, config, onClose }) {
           if (statusData.status === "completed") {
             completed = true;
           } else if (statusData.status === "failed") {
-            throw new Error("File processing failed on server");
+            // Log full response to help diagnose
+            console.error("Backend failed status payload:", JSON.stringify(statusData, null, 2));
+            const reason = statusData.error || statusData.message || statusData.detail || "unknown reason";
+            throw new Error(`File processing failed: ${reason}`);
           }
         }
         if (cancelled) return;
 
         // Step 4: Get report
         const reportRes = await fetch(`${API_BASE}/files/report/${jobId}`);
-        if (!reportRes.ok) throw new Error("Failed to fetch report");
+        if (!reportRes.ok) {
+          let msg = "Failed to fetch report";
+          try { const e = await reportRes.json(); msg = e.detail || e.message || msg; } catch {}
+          throw new Error(msg);
+        }
         const report = await reportRes.json();
         if (cancelled) return;
 
@@ -500,6 +536,7 @@ function ChatInput({ config, onSend, role }) {
   const overlayRef = useRef(null);
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const skipNextSpellcheck = useRef(false);
 
   // Debounced spell check via API
   useEffect(() => {
@@ -507,28 +544,44 @@ function ChatInput({ config, onSend, role }) {
       setCorrectionsMap({});
       return;
     }
+    // Skip one cycle after auto-correction so corrected text doesn't re-trigger underlines
+    if (skipNextSpellcheck.current) {
+      skipNextSpellcheck.current = false;
+      return;
+    }
     const controller = new AbortController();
+    let autoFixTimer = null;
     const timer = setTimeout(async () => {
       try {
         const data = await api("/spellcheck", { text }, { signal: controller.signal });
+        const { corrections, auto_corrected_text } = data;
         const map = {};
-        for (const c of data.corrections) {
+        for (const c of corrections) {
           map[c.word.toLowerCase()] = { correction: c.correction, offset: c.offset, length: c.length };
         }
         setCorrectionsMap(map);
+        if (corrections.length > 0 && auto_corrected_text) {
+          autoFixTimer = setTimeout(() => {
+            skipNextSpellcheck.current = true;
+            setText(auto_corrected_text);
+            setCorrectionsMap({});
+          }, 1000);
+        }
       } catch (e) {
         if (e.name !== "AbortError") console.error("Spellcheck error:", e);
       }
     }, 300);
     return () => {
       clearTimeout(timer);
+      clearTimeout(autoFixTimer);
       controller.abort();
     };
   }, [text]);
 
   // Debounced predictions via API
   useEffect(() => {
-    if (text.trim().length < 3) {
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 4) {
       setPredictions([]);
       return;
     }
@@ -581,7 +634,9 @@ function ChatInput({ config, onSend, role }) {
 
   // On tap: replace misspelled word at [offset:offset+length] with correction
   function handleReplace(offset, length, correction) {
+    skipNextSpellcheck.current = true;
     setText((prev) => prev.slice(0, offset) + correction + prev.slice(offset + length));
+    setCorrectionsMap({});
     textareaRef.current?.focus();
   }
 
@@ -656,7 +711,7 @@ function ChatInput({ config, onSend, role }) {
       {/* Prediction chips below the input */}
       <AnimatePresence>
         {predictions.length > 0 && (
-          <PredictionChips
+          <PredictionList
             predictions={predictions}
             config={config}
             onSelect={handlePrediction}
@@ -750,8 +805,8 @@ export default function Workspace() {
     }));
 
     const aiMsgId = nextId.current++;
-    // Add an empty AI message placeholder (ChatBubble hides it until text arrives)
-    setMessages((prev) => [...prev, { id: aiMsgId, sender: "ai", text: "" }]);
+    // Add an empty AI message placeholder (ChatBubble hides it until content arrives)
+    setMessages((prev) => [...prev, { id: aiMsgId, sender: "ai", text: "", description: "", points: [] }]);
 
     try {
       // Try streaming endpoint first
@@ -766,7 +821,7 @@ export default function Workspace() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let receivedFirst = false;
+      let currentEvent = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -777,21 +832,35 @@ export default function Workspace() {
         buffer = lines.pop(); // keep incomplete line in buffer
 
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
+          if (line.startsWith("event: ")) {
+            currentEvent = line.slice(7).trim();
+          } else if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.done) {
+              if (currentEvent === "message") {
                 setIsAiTyping(false);
-              } else if (data.token) {
-                if (!receivedFirst) {
-                  setIsAiTyping(false);
-                  receivedFirst = true;
-                }
                 setMessages((prev) =>
                   prev.map((m) =>
-                    m.id === aiMsgId ? { ...m, text: m.text + data.token } : m
+                    m.id === aiMsgId ? { ...m, text: data.text } : m
                   )
                 );
+              } else if (currentEvent === "description") {
+                setIsAiTyping(false);
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === aiMsgId ? { ...m, description: data.text } : m
+                  )
+                );
+              } else if (currentEvent === "point") {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === aiMsgId
+                      ? { ...m, points: [...m.points, { index: data.index, text: data.text }] }
+                      : m
+                  )
+                );
+              } else if (currentEvent === "done") {
+                setIsAiTyping(false);
               }
             } catch {
               // Skip malformed SSE lines
@@ -814,7 +883,7 @@ export default function Workspace() {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiMsgId
-              ? { ...m, text: "Sorry, I couldn't process your request. Please check that the backend server is running at http://localhost:8001." }
+              ? { ...m, text: "Sorry, I couldn't process your request. Please check that the backend server is running at http://localhost:8000." }
               : m
           )
         );

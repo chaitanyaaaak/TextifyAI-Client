@@ -93,7 +93,7 @@ const data = await api("/spellcheck", {
 
 #### Frontend Usage Example
 
-```jsx
+````jsx
 // Real-time spell check on typing (debounce 300ms)
 const checkSpelling = async (text) => {
   const { corrections } = await api("/spellcheck", { text });
@@ -101,9 +101,7 @@ const checkSpelling = async (text) => {
   // suggestions → show in popover on click/tap
   return corrections;
 };
-```
-
----
+-
 
 ### 2. Next-Sentence Predictions
 
@@ -119,7 +117,7 @@ const data = await api("/predict", {
   role: "lawyer",
   count: 5,
 });
-```
+````
 
 | Field   | Type     | Required | Default     | Description                  |
 | ------- | -------- | -------- | ----------- | ---------------------------- |
