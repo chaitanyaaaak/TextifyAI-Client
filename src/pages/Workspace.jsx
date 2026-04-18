@@ -166,7 +166,7 @@ export default function Workspace() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-bg-deep font-poppins">
+    <div className="flex h-[100dvh] flex-col bg-bg-deep font-poppins overflow-hidden">
       <WorkspaceHeader
         config={config}
         onBack={() => navigate("/roles")}
@@ -178,10 +178,10 @@ export default function Workspace() {
         <div className="flex flex-1 flex-col border-r border-white/5 bg-white/[0.01]">
           <TabBar activeTab={activeTab} onChange={setActiveTab} config={config} />
 
-          <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="relative flex flex-1 flex-col overflow-hidden">
             {activeTab === "chat" && (
               <div className="flex flex-1 flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto pt-4 pb-32 custom-scrollbar">
+                <div className="relative flex-1 overflow-y-auto pt-4 pb-28 custom-scrollbar">
                   <AnimatePresence initial={false}>
                     {messages.map((m, i) => (
                       <ChatBubble key={i} message={m} config={config} />
@@ -192,7 +192,7 @@ export default function Workspace() {
                 </div>
 
                 {/* Fixed Input Area */}
-                <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-bg-deep via-bg-deep/95 to-transparent px-4 pb-6 pt-12">
+                <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-bg-deep via-bg-deep/95 to-transparent px-3 pb-4 pt-10 sm:px-4 sm:pb-6 sm:pt-12">
                   <div className="mx-auto max-w-2xl">
                     <AnimatePresence>
                       {showPredictions && predictions.length > 0 && (

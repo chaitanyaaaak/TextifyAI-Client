@@ -18,7 +18,7 @@ const TABS = [
 
 export function TabBar({ activeTab, onChange, config }) {
   return (
-    <div className="flex shrink-0 border-b border-white/10 bg-bg-deep/30 px-2">
+    <div className="flex shrink-0 overflow-x-auto border-b border-white/10 bg-bg-deep/30 px-2 scrollbar-hide scroll-smooth">
       {TABS.map((tab) => (
         <button
           key={tab.id}
