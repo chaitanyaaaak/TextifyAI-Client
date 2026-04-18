@@ -3,6 +3,11 @@
 @theme {
   --color-bg-deep: #0a0a0f;
   --color-bg-card: #12121a;
+  --font-sans: "Poppins", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
 }
 
 html {

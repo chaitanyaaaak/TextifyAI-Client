@@ -1,7 +1,7 @@
-import { motion, useInView, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { motion as Motion, useInView, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 import { useRef, useState, useEffect } from "react";
-import logo from "./assets/logo.jpg";
+import logo from "./assets/textify-logo.png";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -13,13 +13,13 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.12 } },
 };
 
-/* ───── Section wrapper with scroll-triggered animation ───── */
+/* Section wrapper with scroll-triggered animation. */
 function Section({ children, className = "", delay = 0 }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <motion.section
+    <Motion.section
       ref={ref}
       className={className}
       initial={{ opacity: 0, y: 40 }}
@@ -27,11 +27,11 @@ function Section({ children, className = "", delay = 0 }) {
       transition={{ duration: 0.6, delay }}
     >
       {children}
-    </motion.section>
+    </Motion.section>
   );
 }
 
-/* ───── Live Demo Card — animated correction showcase ───── */
+/* Live Demo Card with animated correction showcase. */
 
 const demoLines = [
   {
@@ -65,11 +65,10 @@ const demoLines = [
 
 function DemoCard() {
   const [lineIndex, setLineIndex] = useState(0);
-  const [phase, setPhase] = useState("typing"); // typing → wrong → correcting → done
+  const [phase, setPhase] = useState("typing"); // typing, wrong, correcting, or done
   const [typedChars, setTypedChars] = useState(0);
   const current = demoLines[lineIndex];
 
-  // Typing phase
   useEffect(() => {
     if (phase !== "typing") return;
     if (typedChars >= current.wrong.length) {
@@ -80,21 +79,18 @@ function DemoCard() {
     return () => clearTimeout(t);
   }, [phase, typedChars, current.wrong.length]);
 
-  // Wrong → correcting
   useEffect(() => {
     if (phase !== "wrong") return;
     const t = setTimeout(() => setPhase("correcting"), 800);
     return () => clearTimeout(t);
   }, [phase]);
 
-  // Correcting → done
   useEffect(() => {
     if (phase !== "correcting") return;
     const t = setTimeout(() => setPhase("done"), 1200);
     return () => clearTimeout(t);
   }, [phase]);
 
-  // Done → next line
   useEffect(() => {
     if (phase !== "done") return;
     const t = setTimeout(() => {
@@ -105,7 +101,7 @@ function DemoCard() {
     return () => clearTimeout(t);
   }, [phase]);
 
-  // Build the displayed wrong text with highlighted errors
+  /* Build the displayed wrong text with highlighted errors. */
   function renderWrongText() {
     const text = current.wrong.slice(0, typedChars);
     if (phase === "typing") {
@@ -116,7 +112,6 @@ function DemoCard() {
         </span>
       );
     }
-    // Highlight wrong words
     let result = current.wrong;
     const parts = [];
     let lastIdx = 0;
@@ -138,25 +133,22 @@ function DemoCard() {
   }
 
   return (
-    <motion.div
+    <Motion.div
       className="w-full max-w-md rounded-2xl border border-slate-800/80 bg-bg-card overflow-hidden shadow-[0_0_60px_rgba(56,189,248,0.08)]"
       initial={{ opacity: 0, y: 30, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.7, delay: 0.3 }}
     >
-      {/* Title bar */}
       <div className="flex items-center gap-2 border-b border-slate-800/60 px-5 py-3">
         <div className="flex gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/70" />
         </div>
-        <span className="ml-2 text-xs text-slate-500 font-medium">TextifyAI — Live Demo</span>
+        <span className="ml-2 text-xs text-slate-500 font-medium">TextifyAI Live Demo</span>
       </div>
 
-      {/* Content */}
       <div className="px-5 py-6 min-h-[200px] flex flex-col gap-5">
-        {/* Input area */}
         <div>
           <div className="mb-2 flex items-center gap-2">
             <svg className="h-3.5 w-3.5 text-slate-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -169,10 +161,9 @@ function DemoCard() {
           </div>
         </div>
 
-        {/* Corrected output */}
         <AnimatePresence mode="wait">
           {(phase === "correcting" || phase === "done") && (
-            <motion.div
+            <Motion.div
               key={lineIndex + "-corrected"}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -188,14 +179,13 @@ function DemoCard() {
               <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm font-mono leading-relaxed text-emerald-300">
                 {current.fixed}
               </div>
-            </motion.div>
+            </Motion.div>
           )}
         </AnimatePresence>
 
-        {/* Correction badges */}
         <AnimatePresence mode="wait">
           {phase === "done" && (
-            <motion.div
+            <Motion.div
               className="flex flex-wrap gap-2"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -214,15 +204,15 @@ function DemoCard() {
                   <span className="text-emerald-400">{c.fixed}</span>
                 </span>
               ))}
-            </motion.div>
+            </Motion.div>
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </Motion.div>
   );
 }
 
-/* ───── Data ───── */
+/* Feature and process definitions. */
 
 const features = [
   {
@@ -258,19 +248,17 @@ const features = [
 ];
 
 const steps = [
-  { num: "01", title: "Choose Your Role", desc: "Pick a professional persona — lawyer, doctor, engineer, or more." },
+  { num: "01", title: "Choose Your Role", desc: "Pick a professional persona like lawyer, doctor, or engineer." },
   { num: "02", title: "Start Writing", desc: "Type naturally while AI predicts, corrects, and enhances in real time." },
   { num: "03", title: "Review & Export", desc: "Get polished output ready to share, publish, or submit anywhere." },
 ];
 
-/* ───── Component ───── */
+/* Application entry component. */
 
 function App() {
-  const navigate = useNavigate();
-
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-bg-deep text-white">
-      {/* ── Floating gradient orbs (global background) ── */}
+      {/* Floating background gradient orbs. */}
       <div
         className="pointer-events-none fixed -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-sky-500/20 blur-[120px]"
         style={{ animation: "float 8s ease-in-out infinite" }}
@@ -280,16 +268,16 @@ function App() {
         style={{ animation: "float 10s ease-in-out infinite reverse" }}
       />
 
-      {/* ════════════════  NAVBAR  ════════════════ */}
-      <motion.nav
+      {/* Main navigation header. */}
+      <Motion.nav
         className="sticky top-0 z-50 border-b border-white/[0.06] bg-bg-deep/70 backdrop-blur-xl"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 sm:px-12">
-          {/* Logo */}
-          <a href="#" className="flex items-center gap-2.5 group">
+          {/* Brand identity. */}
+          <Link to="/" className="flex items-center gap-2.5 group">
             <img
               src={logo}
               alt="TextifyAI"
@@ -298,9 +286,9 @@ function App() {
             <span className="text-lg font-semibold tracking-tight">
               Textify<span className="bg-gradient-to-r from-sky-400 to-violet-400 bg-clip-text text-transparent">AI</span>
             </span>
-          </a>
+          </Link>
 
-          {/* Nav links — pill style */}
+          {/* Supplemental navigation links. */}
           <div className="hidden items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.03] px-1.5 py-1 sm:flex">
             {[
               { label: "Features", href: "#features" },
@@ -317,40 +305,38 @@ function App() {
             ))}
           </div>
 
-          {/* CTA */}
-          <button
-            onClick={() => navigate("/roles")}
+          {/* Primary call to action. */}
+          <Link
+            to="/roles"
             className="flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-2 text-sm font-semibold text-white shadow-[0_0_16px_rgba(56,189,248,0.25)] transition-all hover:scale-105 hover:shadow-[0_0_24px_rgba(139,92,246,0.35)] cursor-pointer"
           >
             Get Started
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
             </svg>
-          </button>
+          </Link>
         </div>
-      </motion.nav>
+      </Motion.nav>
 
-      {/* ════════════════  HERO — split layout  ════════════════ */}
+
+      {/* Main hero section with split layout. */}
       <header className="relative z-10 px-6 pt-16 pb-24 sm:px-12 sm:pt-20 sm:pb-32">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-12 lg:flex-row lg:items-center lg:gap-16">
-          {/* ── Left: Text content ── */}
-          <motion.div
+          <Motion.div
             className="flex flex-1 flex-col items-center text-center lg:items-start lg:text-left"
             variants={stagger}
             initial="hidden"
             animate="visible"
           >
-            {/* Badge */}
-            <motion.span
+            <Motion.span
               className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-700/60 bg-bg-card px-4 py-1.5 text-xs tracking-wide text-slate-400"
               variants={fadeUp}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Powered by BERT &amp; Transformer Models
-            </motion.span>
+              Powered by BERT and Transformer Models
+            </Motion.span>
 
-            {/* Title */}
-            <motion.h1
+            <Motion.h1
               className="max-w-xl text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl"
               variants={fadeUp}
             >
@@ -359,26 +345,24 @@ function App() {
                 AI-Powered
               </span>{" "}
               Intelligence
-            </motion.h1>
+            </Motion.h1>
 
-            {/* Subtitle */}
-            <motion.p
+            <Motion.p
               className="mt-6 max-w-lg text-lg leading-relaxed text-slate-400"
               variants={fadeUp}
             >
               Your intelligent writing companion that predicts, corrects, and
-              converses &mdash; tailored for lawyers, doctors, engineers, and
+              converses tailored for lawyers, doctors, engineers, and
               anyone who writes.
-            </motion.p>
+            </Motion.p>
 
-            {/* CTA group */}
-            <motion.div className="mt-8 flex flex-wrap items-center gap-4" variants={fadeUp}>
-              <button
-                onClick={() => navigate("/roles")}
+            <Motion.div className="mt-8 flex flex-wrap items-center gap-4" variants={fadeUp}>
+              <Link
+                to="/roles"
                 className="rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-8 py-3.5 font-semibold text-white shadow-[0_0_24px_rgba(56,189,248,0.4)] transition-all hover:scale-105 hover:shadow-[0_0_32px_rgba(139,92,246,0.5)] cursor-pointer"
               >
-                Get Started &mdash; It's Free
-              </button>
+                Get Started for Free
+              </Link>
               <a
                 href="#features"
                 className="flex items-center gap-2 rounded-full border border-slate-700/60 px-6 py-3.5 text-sm font-medium text-slate-300 transition-all hover:border-slate-600 hover:text-white"
@@ -388,20 +372,19 @@ function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
                 </svg>
               </a>
-            </motion.div>
-          </motion.div>
+            </Motion.div>
+          </Motion.div>
 
-          {/* ── Right: Live demo card ── */}
           <div className="flex flex-1 items-center justify-center lg:justify-end">
             <DemoCard />
           </div>
         </div>
       </header>
 
-      {/* ── Divider glow line ── */}
+      {/* Decorative divider line. */}
       <div className="mx-auto h-px w-2/3 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
 
-      {/* ════════════════  FEATURES  ════════════════ */}
+      {/* Key features overview. */}
       <div id="features" className="relative z-10 px-6 py-24 sm:px-12 sm:py-32">
         <Section className="mx-auto max-w-6xl">
           <div className="mb-16 text-center">
@@ -435,10 +418,10 @@ function App() {
         </Section>
       </div>
 
-      {/* ── Divider ── */}
+      {/* Section divider. */}
       <div className="mx-auto h-px w-2/3 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
 
-      {/* ════════════════  HOW IT WORKS  ════════════════ */}
+      {/* Step by step process description. */}
       <div id="how-it-works" className="relative z-10 px-6 py-24 sm:px-12 sm:py-32">
         <Section className="mx-auto max-w-4xl">
           <div className="mb-16 text-center">
@@ -469,10 +452,10 @@ function App() {
         </Section>
       </div>
 
-      {/* ── Divider ── */}
+      {/* Section divider. */}
       <div className="mx-auto h-px w-2/3 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
 
-      {/* ════════════════  BOTTOM CTA  ════════════════ */}
+      {/* Final call to action section. */}
       <Section className="relative z-10 px-6 py-24 sm:px-12 sm:py-32">
         <div className="mx-auto max-w-3xl rounded-3xl border border-slate-800/80 bg-bg-card p-12 text-center sm:p-16">
           <div className="pointer-events-none absolute inset-0 mx-auto h-64 w-64 rounded-full bg-violet-500/10 blur-[100px]" />
@@ -483,16 +466,16 @@ function App() {
             Join professionals who write faster, cleaner, and smarter with
             TextifyAI. Pick your role and start in seconds.
           </p>
-          <button
-            onClick={() => navigate("/roles")}
+          <Link
+            to="/roles"
             className="relative mt-8 inline-block rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-10 py-4 font-semibold text-white shadow-[0_0_24px_rgba(56,189,248,0.4)] transition-all hover:scale-105 hover:shadow-[0_0_32px_rgba(139,92,246,0.5)] cursor-pointer"
           >
             Get Started for Free
-          </button>
+          </Link>
         </div>
       </Section>
 
-      {/* ════════════════  FOOTER  ════════════════ */}
+      {/* Site footer component. */}
       <footer id="contact" className="relative z-10 border-t border-slate-800/60 px-6 py-10 sm:px-12">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2">

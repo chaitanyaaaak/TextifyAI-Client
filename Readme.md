@@ -124,27 +124,34 @@ These custom colors are used as `bg-bg-deep` and `bg-bg-card` throughout the app
 
 ---
 
-## Backend Setup
+## Backend Integration
 
-The `requirements.txt` file lists Python dependencies for the FastAPI backend (developed separately).
+The frontend is integrated with a FastAPI backend. To connect the UI to the API, you must configure the following environment variable:
 
-```bash
-# Create a virtual environment
-python -m venv venv
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `VITE_API_URL` | Base URL for the TextifyAI API | `http://localhost:8001/api` |
 
-# Activate it
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-
-# Install backend dependencies
-pip install -r requirements.txt
-```
-
-> **Note:** The frontend currently runs with mock data (`src/data/mockData.js`). No backend connection is required for the UI to function.
+### Key API Features
+- **Spell Check**: Real-time suggestions via BERT-based models.
+- **Role-Aware Predictions**: Next-sentence completions tailored to 6 professional roles.
+- **AI Chat**: Natural dialogue with domain-specific context.
+- **File Analysis**: Upload and process documents for aggregate metrics.
 
 ---
+
+## Production Deployment
+
+### 1. Build the App
+```bash
+npm run build
+```
+
+### 2. Environment Variables
+When deploying to **Vercel**, **Netlify**, or similar platforms, ensure `VITE_API_URL` is set in the environment settings to point to your live backend endpoint.
+
+### 3. Backend Setup
+The backend requires Python 3.10+ and the dependencies listed in `requirements.txt`.
 
 ## Troubleshooting
 

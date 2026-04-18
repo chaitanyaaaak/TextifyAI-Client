@@ -7,12 +7,21 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# Environment
+.env
+.env.development
+.env.test
+.env.production
+.env.local
+.env.*.local
+
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,3 +31,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Project specific
+TEXTIFY_TECH_REPORT.md
+TEXTIFYAI_UI_TECHNICAL_REPORT.md
+lint_results.txt
+node_modules/
+.env.example
+!.env.example
