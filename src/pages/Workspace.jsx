@@ -14,6 +14,7 @@ import { DocumentAnalyzerTab } from "../components/workspace/DocumentAnalyzerTab
 import { CoherenceDetectorTab } from "../components/workspace/CoherenceDetectorTab";
 import { SpellCheckedTextarea } from "../components/workspace/SpellCheckedTextarea";
 import { CorrectionPopover } from "../components/workspace/CorrectionPopover";
+import { API_BASE } from "../api/api-client";
 
 // fadeUp and other animation constants...
 
@@ -86,7 +87,7 @@ export default function Workspace() {
       // Create a temporary placeholder for streaming content
       setMessages((prev) => [...prev, { sender: "assistant", text: "", description: "", points: [] }]);
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8001/api"}/chat/stream`, {
+      const response = await fetch(`${API_BASE}/chat/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role, messages: [...messages, userMsg] }),
