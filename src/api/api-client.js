@@ -3,7 +3,8 @@
  * Handles communication with the FastAPI backend
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8001/api";
+const rawApiUrl = import.meta.env.VITE_API_URL || "http://localhost:8001";
+const API_BASE = rawApiUrl.endsWith("/api") ? rawApiUrl : `${rawApiUrl.replace(/\/$/, "")}/api`;
 
 /**
  * Generic API request wrapper
