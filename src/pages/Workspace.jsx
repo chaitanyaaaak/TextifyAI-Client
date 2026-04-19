@@ -198,8 +198,9 @@ export default function Workspace() {
 
           <div className="relative flex flex-1 flex-col overflow-hidden">
             {activeTab === "chat" && (
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <div className="relative flex-1 overflow-y-auto pt-4 pb-28 custom-scrollbar">
+              <div className="flex h-full flex-col overflow-hidden">
+                {/* Scrollable Message Area */}
+                <div className="custom-scrollbar flex-1 overflow-y-auto pt-4">
                   <AnimatePresence initial={false}>
                     {messages.map((m, i) => (
                       <ChatBubble key={i} message={m} config={config} />
@@ -208,9 +209,9 @@ export default function Workspace() {
                   </AnimatePresence>
                   <div ref={chatEndRef} />
                 </div>
-
-                {/* Fixed Input Area */}
-                <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-bg-deep via-bg-deep/95 to-transparent px-3 pb-4 pt-10 sm:px-4 sm:pb-6 sm:pt-12">
+ 
+                {/* Inline Input Area (Native Flexbox sibling) */}
+                <div className="bg-bg-deep/80 px-3 pb-4 pt-4 backdrop-blur-md sm:px-4 sm:pb-6 sm:pt-6">
                   <div className="mx-auto max-w-2xl">
                     <AnimatePresence>
                       {showPredictions && predictions.length > 0 && (
@@ -221,7 +222,7 @@ export default function Workspace() {
                         />
                       )}
                     </AnimatePresence>
-
+ 
                     <div className="flex items-end gap-2 rounded-2xl bg-bg-card p-2 shadow-xl border border-white/10 ring-1 ring-white/5">
                       <div className="flex-1">
                         <SpellCheckedTextarea
