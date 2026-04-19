@@ -1,4 +1,6 @@
 import { motion as Motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -8,7 +10,6 @@ const fadeUp = {
 export function ChatBubble({ message, config }) {
   const isUser = message.sender === "user";
 
-  // Don't render empty placeholder before any streaming content arrives
   const hasContent =
     message.text ||
     message.description ||
@@ -39,18 +40,31 @@ export function ChatBubble({ message, config }) {
         {isUser ? (
           message.text
         ) : (
-          <>
-            {message.description && <p>{message.description}</p>}
+          <div className="markdown-container prose prose-invert prose-sm max-w-none">
+            {message.description && <p className="mb-2 font-medium text-white">{message.description}</p>}
             {message.points && message.points.length > 0 && (
-              <ol className="mt-2 list-decimal space-y-1 pl-4">
-                {message.points.map((p) => (
-                  <li key={p.index}>{p.text}</li>
+              <ol className="mb-3 list-decimal space-y-1 pl-4">
+                {message.points.map((p, idx) => (
+                  <li key={idx}>{p.text}</li>
                 ))}
               </ol>
             )}
-            {/* Fallback for non-streamed replies */}
-            {!message.description && !message.points?.length && message.text}
-          </>
+            {message.text && (
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                  ul: ({ children }) => <ul className="mb-2 list-disc pl-4 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="mb-2 list-decimal pl-4 space-y-1">{children}</ol>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  strong: ({ children }) => <strong className="font-bold text-white tracking-tight">{children}</strong>,
+                  code: ({ children }) => <code className="rounded bg-white/10 px-1 py-0.5 text-xs font-mono">{children}</code>
+                }}
+              >
+                {message.text}
+              </ReactMarkdown>
+            )}
+          </div>
         )}
       </div>
     </Motion.div>

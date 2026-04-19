@@ -93,7 +93,11 @@ export default function Workspace() {
         body: JSON.stringify({ role, messages: [...messages, userMsg] }),
       });
 
-      if (!response.ok) throw new Error("Stream failed");
+      if (!response.ok) {
+        if (response.status === 429) throw new Error("You're sending messages too quickly. Please wait a moment.");
+        if (response.status >= 500) throw new Error("Our AI service is experiencing difficulties. Please try again later.");
+        throw new Error("I couldn't connect to the chat service.");
+      }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -144,7 +148,20 @@ export default function Workspace() {
       }
     } catch (error) {
        console.error("Chat error:", error);
-       setMessages(prev => [...prev, { sender: "assistant", text: "I'm sorry, I encountered an error. Please try again." }]);
+       const friendlyMessage = error.message.includes("Failed to fetch") 
+         ? "The server is currently unavailable. Please check your connection."
+         : error.message || "I'm sorry, I encountered an error. Please try again.";
+       
+       setMessages(prev => {
+         const newMessages = [...prev];
+         const lastIndex = newMessages.length - 1;
+         // If we had a placeholder assistant message, replace its text
+         if (newMessages[lastIndex]?.sender === "assistant" && !newMessages[lastIndex].text) {
+           newMessages[lastIndex] = { ...newMessages[lastIndex], text: friendlyMessage };
+           return newMessages;
+         }
+         return [...prev, { sender: "assistant", text: friendlyMessage }];
+       });
     } finally {
       setIsTyping(false);
     }

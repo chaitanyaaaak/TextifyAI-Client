@@ -92,9 +92,22 @@ export function CoherenceDetectorTab({ config, role }) {
 
           {/* Error */}
           {error && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-center">
-              <p className="text-sm text-red-300">{error}</p>
-            </div>
+            <Motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="group relative overflow-hidden rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-center"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-50" />
+              <div className="relative flex flex-col items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/10 text-red-400">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-red-200">{error}</p>
+                <p className="text-[10px] text-red-400/60 uppercase tracking-widest font-bold">Action Required</p>
+              </div>
+            </Motion.div>
           )}
 
           {/* Result */}
