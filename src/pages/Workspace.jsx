@@ -193,7 +193,7 @@ export default function Workspace() {
       
       <main className="flex flex-1 flex-col min-h-0 overflow-hidden sm:flex-row">
         {/* Left/Main Column: Chat & Tabs */}
-        <div className="flex flex-1 flex-col border-r border-white/5 bg-white/[0.01]">
+        <div className="flex flex-1 flex-col min-h-0 border-r border-white/5 bg-white/[0.01]">
           <TabBar activeTab={activeTab} onChange={setActiveTab} config={config} />
 
           <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
