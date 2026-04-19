@@ -1,163 +1,79 @@
-# TextifyAI — Project Setup Guide
+# TextifyAI - Intelligent Writing Assistant
 
-## Prerequisites
-
-- **Node.js** v18 or higher (v20+ recommended)
-- **npm** (comes with Node.js)
-- **Python 3.10+** (for the backend — see [Backend Setup](#backend-setup))
+TextifyAI is a premium, AI-powered writing assistant designed to elevate your content across various professional domains. Whether you're a lawyer, doctor, engineer, or creative writer, TextifyAI provides real-time spellchecking, logical coherence analysis, and sentence predictions tailored to your specific field.
 
 ---
 
-## Quick Start (Frontend)
+## 🚀 Live Deployment
+Experience TextifyAI live at: **[https://textify-ai-seven.vercel.app/](https://textify-ai-seven.vercel.app/)**
 
+---
+
+## 🛠️ Tech Stack
+- **Framework**: [React 19](https://react.dev/)
+- **Build Tool**: [Vite 7](https://vitejs.dev/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Rendering**: [React Markdown](https://github.com/remarkjs/react-markdown) for structured AI responses.
+
+---
+
+## 🏗️ Folder Overview
+
+A well-structured overview of the project's architecture:
+
+```text
+src/
+├── api/             # Backend communication layer (NLP, Files, Chat)
+├── assets/          # Brand assets, logos, and UI images
+├── components/      # Reusable UI components
+│   └── workspace/   # Specialized workspace tabs and tools (Chat, Spellcheck, etc.)
+├── config/          # Application-level configurations (Role definitions)
+├── pages/           # Main application view components (Landing, Roles, Workspace)
+├── App.jsx          # Main application router and state entry
+├── index.css        # Global styles and Tailwind directives
+└── main.jsx         # Application mounting point
+```
+
+---
+
+## ⚡ Quick Start
+
+Get the project running locally in under a minute:
+
+### 1. Clone the repository
 ```bash
-# 1. Clone the repository
-git clone <repo-url>
-cd TextifyAI
+git clone https://github.com/chaitanyaaaak/TextifyAI-Client.git
+cd TextifyAI-Client
+```
 
-# 2. Install dependencies
+### 2. Install dependencies
+```bash
 npm install
+```
 
-# 3. Start the development server
+### 3. Configure Environment
+Create a `.env` file in the root directory and set your backend API URL:
+```env
+VITE_API_URL=https://textifyai-api.onrender.com
+```
+
+### 4. Launch Development Server
+```bash
 npm run dev
 ```
-
-The app will be available at `http://localhost:5173` by default.
-
-## Available Scripts
-
-| Command           | Description                        |
-| ----------------- | ---------------------------------- |
-| `npm run dev`     | Start Vite dev server with HMR     |
-| `npm run build`   | Build for production into `dist/`  |
-| `npm run preview` | Preview the production build       |
-| `npm run lint`    | Run ESLint across all JS/JSX files |
+The application will be available at `http://localhost:5173`.
 
 ---
 
-## Tech Stack
-
-| Category   | Technology                                                    |
-| ---------- | ------------------------------------------------------------- |
-| Framework  | **React 19** (JSX, no TypeScript)                             |
-| Build Tool | **Vite 7** with `@vitejs/plugin-react`                        |
-| Styling    | **Tailwind CSS v4** (via `@tailwindcss/vite` plugin)          |
-| Animations | **Framer Motion** for page transitions and micro-interactions |
-| Routing    | **React Router DOM v7** (client-side routing)                 |
-| Font       | **Poppins** (loaded via Google Fonts CDN in `index.html`)     |
-| Icons      | **Font Awesome 6** (loaded via CDN) + inline SVGs             |
-| Linting    | **ESLint 9** with React Hooks and React Refresh plugins       |
+## 📝 Key Features
+- **Role-Based Intelligence**: Tailored AI assistance for various professional fields.
+- **Advanced Coherence Checker**: Verify the logical flow between your thoughts.
+- **Document Analyzer**: Bulk spellchecking and grammar correction for uploaded files.
+- **Real-time Prediction**: Deep-learning based sentence completions as you type.
+- **Premium UI/UX**: Dark-mode primary interface with glassmorphism and smooth animations.
 
 ---
 
-## Folder Structure
-
-```
-TextifyAI/
-├── index.html                  # Entry HTML — loads Google Fonts, Font Awesome, and the app
-├── package.json                # Dependencies and npm scripts
-├── vite.config.js              # Vite config — React + Tailwind CSS plugins
-├── eslint.config.js            # ESLint flat config for JS/JSX
-├── requirements.txt            # Python backend dependencies (FastAPI, NLP, AI)
-│
-├── public/
-│   └── vite.svg                # Default Vite favicon
-│
-├── src/
-│   ├── main.jsx                # App entry point — sets up BrowserRouter and Routes
-│   ├── index.css               # Global styles — Tailwind import, custom theme colors, keyframes
-│   ├── App.css                 # (Currently empty — styles are handled via Tailwind classes)
-│   ├── App.jsx                 # Landing page — hero, features, how-it-works, footer, live demo
-│   │
-│   ├── assets/
-│   │   ├── logo.jpg            # TextifyAI brand logo
-│   │   └── react.svg           # React logo (default Vite scaffold)
-│   │
-│   ├── pages/
-│   │   ├── RoleSelection.jsx   # Role picker page — 6 role cards (Lawyer, Doctor, etc.)
-│   │   └── Workspace.jsx       # Chat workspace — spell-check, predictions, file upload/analysis
-│   │
-│   └── data/
-│       ├── roleConfig.js       # Per-role config (colors, gradients, avatars, mock AI responses)
-│       └── mockData.js         # Spell-check dictionary, next-word predictions, file correction logic
-│
-└── dist/                       # Production build output (generated by `npm run build`)
-```
-
----
-
-## Routing (3 pages)
-
-| Route              | Component       | Purpose                                           |
-| ------------------ | --------------- | ------------------------------------------------- |
-| `/`                | `App.jsx`       | Landing page with hero, features, and live demo   |
-| `/roles`           | `RoleSelection` | Choose a professional role (Lawyer, Doctor, etc.) |
-| `/workspace/:role` | `Workspace`     | Chat-based writing workspace for the chosen role  |
-
----
-
-## Styling Approach
-
-The project uses **Tailwind CSS v4** with the Vite plugin (no `tailwind.config.js` needed). All styling is done via **utility classes directly in JSX** — there are no separate CSS modules or styled-components.
-
-### Custom Theme (defined in `src/index.css`)
-
-```css
-@import "tailwindcss";
-
-@theme {
-  --color-bg-deep: #0a0a0f; /* Main dark background */
-  --color-bg-card: #12121a; /* Card/surface background */
-}
-```
-
-These custom colors are used as `bg-bg-deep` and `bg-bg-card` throughout the app.
-
-### Key Styling Patterns
-
-- **Dark theme only** — deep navy/black backgrounds with slate text
-- **Gradient accents** — `bg-gradient-to-r from-sky-500 to-violet-500` used for CTAs and headings
-- **Glassmorphism** — `backdrop-blur-xl` + semi-transparent backgrounds on navbar and input areas
-- **Floating orbs** — CSS-animated gradient blurs for ambient background effects
-- **Role-based theming** — each role (Lawyer, Doctor, etc.) has its own gradient, glow, and accent colors defined in `roleConfig.js`
-- **Framer Motion** — fade-up animations, staggered reveals, scroll-triggered sections, `AnimatePresence` for enter/exit transitions
-
----
-
-## Backend Integration
-
-The frontend is integrated with a FastAPI backend. To connect the UI to the API, you must configure the following environment variable:
-
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `VITE_API_URL` | Base URL for the TextifyAI API | `http://localhost:8001/api` |
-
-### Key API Features
-- **Spell Check**: Real-time suggestions via BERT-based models.
-- **Role-Aware Predictions**: Next-sentence completions tailored to 6 professional roles.
-- **AI Chat**: Natural dialogue with domain-specific context.
-- **File Analysis**: Upload and process documents for aggregate metrics.
-
----
-
-## Production Deployment
-
-### 1. Build the App
-```bash
-npm run build
-```
-
-### 2. Environment Variables
-When deploying to **Vercel**, **Netlify**, or similar platforms, ensure `VITE_API_URL` is set in the environment settings to point to your live backend endpoint.
-
-### 3. Backend Setup
-The backend requires Python 3.10+ and the dependencies listed in `requirements.txt`.
-
-## Troubleshooting
-
-| Issue                        | Solution                                                                             |
-| ---------------------------- | ------------------------------------------------------------------------------------ |
-| `npm install` fails          | Make sure you're using Node.js v18+. Run `node --version`                            |
-| Port 5173 already in use     | Vite will auto-pick the next available port, or stop the other process               |
-| Tailwind classes not working | Ensure `@tailwindcss/vite` is in devDependencies and `vite.config.js` has the plugin |
-| Fonts not loading            | Check internet connection — Poppins and Font Awesome are loaded via CDN              |
+## ✅ Deployment
+The client is optimized for deployment on platforms like **Vercel** or **Netlify**. Ensure that the `VITE_API_URL` environment variable is correctly configured in your deployment settings to point to the active backend service.
