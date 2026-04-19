@@ -35,7 +35,7 @@ export function CoherenceDetectorTab({ config, role }) {
   const canCheck = sentenceA.trim().length > 0 && sentenceB.trim().length > 0;
 
   return (
-    <div className="flex h-full flex-1 flex-col overflow-y-auto p-6">
+    <div className="flex h-full flex-1 flex-col min-h-0 overflow-y-auto p-6">
       <div className="mx-auto w-full max-w-lg space-y-4">
         <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="mb-6 text-center">

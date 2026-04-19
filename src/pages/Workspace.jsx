@@ -191,12 +191,12 @@ export default function Workspace() {
         onShowTips={() => setIsTipsOpen(true)}
       />
       
-      <main className="flex flex-1 flex-col overflow-hidden sm:flex-row">
+      <main className="flex flex-1 flex-col min-h-0 overflow-hidden sm:flex-row">
         {/* Left/Main Column: Chat & Tabs */}
         <div className="flex flex-1 flex-col border-r border-white/5 bg-white/[0.01]">
           <TabBar activeTab={activeTab} onChange={setActiveTab} config={config} />
 
-          <div className="relative flex flex-1 flex flex-col overflow-hidden">
+          <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
             {activeTab === "chat" && (
               <div className="flex h-full flex-col overflow-hidden">
                 {/* Scrollable Message Area */}
