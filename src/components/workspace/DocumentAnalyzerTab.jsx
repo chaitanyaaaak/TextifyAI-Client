@@ -146,7 +146,7 @@ export function DocumentAnalyzerTab({ config }) {
   const done = !!result;
 
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto p-6">
+    <div className="flex h-full flex-1 flex-col overflow-y-auto p-6">
       <div className="mx-auto w-full max-w-lg">
         {/* File header */}
         <div className="mb-6 flex items-center justify-between">

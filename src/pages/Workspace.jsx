@@ -196,7 +196,7 @@ export default function Workspace() {
         <div className="flex flex-1 flex-col border-r border-white/5 bg-white/[0.01]">
           <TabBar activeTab={activeTab} onChange={setActiveTab} config={config} />
 
-          <div className="relative flex flex-1 flex-col overflow-hidden">
+          <div className="relative flex flex-1 flex flex-col overflow-hidden">
             {activeTab === "chat" && (
               <div className="flex h-full flex-col overflow-hidden">
                 {/* Scrollable Message Area */}
